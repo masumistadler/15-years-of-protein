@@ -6,7 +6,7 @@ This repository contains the R code and methodology used to estimate the cumulat
 
 ## Overview
 
-Countries included were: Austria, Canada, Japan and U.S. for all the countries where I have lived parts of my adult life. To move beyond global average life cycle assessment (LCA) data, I incorporated country-specific **AWARE (Available Water Remaining)** factors to reflect the locally sourced nature of diary, a more geographically accurate representation of water stress associated with food production. However, I have left the globally average AWARE for other protein-sources as these proteins can be sourced globally.
+Countries included were: Austria, Canada, Japan and U.S. for all the countries where I have lived parts of my adult life. To move beyond global average life cycle assessment (LCA) data, I incorporated country-specific **AWARE (Available Water Remaining)** factors to reflect the locally sourced nature of diary, a more geographically accurate representation of water stress associated with food production. However, I have left the globally averaged AWARE for other protein-sources as these proteins can be sourced globally.
 
 ## Key results
 

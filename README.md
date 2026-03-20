@@ -1,6 +1,6 @@
 # Environmental Impact of Dietary Protein: A 15-Year Cumulative Analysis
 
-This repository contains the R code and methodology used to estimate the cumulative greenhouse gas (GHG) and water footprint of a 15-year dietary history. The project compares a Lacto-Ovo Vegetarian diet (mine) against various national baselines and flexitarian example models.
+This repository contains the R code and methodology used to estimate the cumulative greenhouse gas (GHG) and water footprint of a 15-year dietary history. The project compares a Lacto-Ovo Vegetarian diet (mine) against various national baselines and flexitarian example models. Read the full blog post on my [website](https://masumistadler.wordpress.com/).
 
 ---
 

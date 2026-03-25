@@ -111,13 +111,13 @@ scar.water_protein <- fread("https://ourworldindata.org/grapher/scarcity-water-p
 # These are supply data, do a meat adjustment of 0.7, and dairy adjustment of 0.9
 
 # get beans data, units in kg/capita/yr
-legumes <- read.csv("./Data/FAOSTAT_data_en_3-11-2026.csv", sep = ",") %>% 
-  setDT()
-
-# calculate averages by year, country and type
-legumes <- legumes[, .(avg = mean(Value, na.rm = T)), by = .(Area, Item)]
-# sum by country
-legumes <- legumes[, .(sum = sum(avg)), by = .(Area)]
+# legumes <- read.csv("./Data/FAOSTAT_data_en_3-11-2026.csv", sep = ",") %>% 
+#   setDT()
+# 
+# # calculate averages by year, country and type
+# legumes <- legumes[, .(avg = mean(Value, na.rm = T)), by = .(Area, Item)]
+# # sum by country
+# legumes <- legumes[, .(sum = sum(avg)), by = .(Area)]
 
 # add to protein table
 protein.consumption <- data.frame(country = c("Austria","Canada","Japan","USA"),
@@ -442,6 +442,91 @@ consum[protein == "alt.meat",`Scarcity-weighted water use per 100g protein` :=
 consum[protein == "alt.meat", `Greenhouse gas emissions per 100g protein` :=
          `Greenhouse gas emissions per 100g protein` + ((0.51/21) * 100)] # add manufacturing
 
+# Plot footprints of evaluated proteins
+# get averages per protein (avg only for country adjusted water use
+# rest is global average
+# take one lifestyle to not artificially change averages
+sum.wat <- consum[lifestyle.type == "omnivore",.(avg = mean(`Scarcity-weighted water use per 100g protein`),
+                                 sd = sd(`Scarcity-weighted water use per 100g protein`)),
+                              by = .(protein)]
+sum.ghg <- consum[lifestyle.type == "omnivore",.(avg = mean(`Greenhouse gas emissions per 100g protein`),
+                       sd = sd(`Greenhouse gas emissions per 100g protein`)),
+                    by = .(protein)]
+# combine
+food.foot <- bind_rows(sum.wat[,data := "water"], sum.ghg[, data := "ghg"])
+
+food.foot[, protein := factor(protein,
+                              levels = c("beef","lamb","cheese","milk","pork","fish","chicken",
+                                         "egg",
+                                         "alt.meat","tofu","pulses"),
+                              labels = c("Beef","Lamb","Cheese","Milk","Pork","Fish","Chicken",
+                                         "Egg",
+                                         "Alt-Meat","Tofu","Beans"))]
+# get col palette
+incandescent <- color("incandescent")
+
+# plot
+(gp <- ggplot(food.foot %>% filter(data == "ghg"), aes(x = protein, y = avg)) +
+  theme_bw() +
+  geom_col(fill = "#663333") +
+  labs(y = "",
+       x = "",
+       title = "Greenhouse gas emissions per 100g protein",
+       subtitle = "Greenhouse gas emissions measured in kilograms of carbon\ndioxoide-equivalents.") +
+  scale_y_continuous(limits = c(0,55)) +
+    theme(panel.grid.major.x = element_blank(),
+          panel.grid.minor.y = element_blank(),
+          axis.ticks.x = element_blank(),
+          #axis.text.x = element_blank()
+          plot.title = element_text(colour = "grey20"),
+          plot.subtitle = element_text(colour = "grey40", face = "italic", size = 9)
+    ))
+
+# save to keep label reference
+ggsave("./Figure/ghg.protein_rank.png", gp, width = 15, height = 10, unit = "cm")
+
+# re-level
+food.foot[, w.protein := factor(protein,
+                              levels = c("Lamb","Pork","Fish","Beef","Egg","Alt-Meat",
+                                         "Beans","Cheese","Chicken","Milk","Tofu"))]
+
+(wp <- ggplot() +
+  theme_bw() +
+  geom_col(data = food.foot %>% filter(data == "water"), 
+           aes(x = w.protein, y = avg),
+           fill = "#225555") +
+  geom_linerange(data = food.foot %>% filter(data == "water" & protein %in% c("Cheese",
+                                                                             "Milk")), 
+                aes(x = protein, 
+                    ymin = avg, ymax = avg + sd), 
+                size = 0.5, lineend = "round",
+                colour = "#225555") +
+  labs(y = "",
+       x = "",
+       title = "Scarcity-weighted water use per 100g protein",
+       subtitle = "Scarcity-weighted water use represents freshwater use weighted\nby local water scarcity (in litres). Dairy was weighted by local water\nscarcity, while other proteins where weighted by their global average.") +
+  scale_y_continuous(limits = c(0,78000),
+                     breaks = c(0,20000,40000,60000),
+                     labels = c(0, "20K","40K","60K")) +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        #axis.text.x = element_blank()
+              plot.title = element_text(colour = "grey20"),
+              plot.subtitle = element_text(colour = "grey40", face = "italic", size = 9)
+        ))
+# save to keep label reference
+ggsave("./Figure/water.protein_rank.png", wp, width = 15, height = 10, unit = "cm")
+
+(p <- (gp + theme(axis.text.x = element_blank()) |
+         wp + theme(axis.text.x = element_blank())
+       ) + 
+    plot_layout(ncol = 2, guides = "collect"))
+    # plot_annotation(title = "Cumulative 15-year impact of protein intake",
+    #                 theme = theme(plot.title = element_text(colour = "grey20", hjust = 0.03))))
+ggsave('./Figure/all.ranking.png', p, width = 27, height = 12, units = "cm")
+
+
 # Extrapolate ------------------------------------------------------------------
 # get total impact
 consum[, GHG.impact := (per.year / 100) * `Greenhouse gas emissions per 100g protein`]
@@ -602,7 +687,7 @@ delta.water <- cum.annual[country == "USA" & lifestyle.type == "Omnivore" &
                                                                      Year == 2026,]$GHG.cum - 7000,
              colour = "grey30") +
   geom_rect(aes(fill = lifestyle.type)) +
-  geom_text(aes(x = 500, label = country), hjust = "left", colour = "white") +
+  #geom_text(aes(x = 500, label = country), hjust = "left", colour = "white") +
   scale_fill_manual(values = diet.cols, name = "Diet Type") +
   theme(strip.placement = "outside",
         panel.spacing = unit(0,"cm"),
@@ -637,7 +722,7 @@ delta.water <- cum.annual[country == "USA" & lifestyle.type == "Omnivore" &
              colour = "grey30") +
   # geom_text(aes(x = GHG.cum, label = as.character(round(GHG.cum / 1000,0))),
   #               hjust = "left") +
-  geom_text(aes(x = 1000000, label = country), hjust = "left", colour = "white") +
+  #geom_text(aes(x = 1000000, label = country), hjust = "left", colour = "white") +
   scale_fill_manual(values = diet.cols, name = "Diet Type") +
   theme(strip.placement = "outside",
         panel.spacing = unit(0,"cm"),
@@ -655,9 +740,22 @@ delta.water <- cum.annual[country == "USA" & lifestyle.type == "Omnivore" &
 
 (p <- (ghg | wat) +
     plot_layout(ncol = 2, guides = "collect") +
-  plot_annotation(title = "Cumulative 15-year impact of protein intake",
+  plot_annotation(title = "Cumulative 15-year impact of protein intake of a single person",
                   theme = theme(plot.title = element_text(colour = "grey20", hjust = 0.03))))
 ggsave('./Figure/total.impact.png', p, width = 27, height = 12, units = "cm")
+
+
+# make another version without country names
+# comment out geom_text above an re-save
+#ggsave('./Figure/no-country.total.impact.png', p, width = 27, height = 12, units = "cm")
+
+
+(p <- (ghg | wat) +
+    plot_layout(ncol = 2, guides = "collect") +
+    plot_annotation(title = "Cumulative 15-year impact of protein intake",
+                    theme = theme(plot.title = element_text(colour = "grey20", hjust = 0.03))))
+ggsave('./Figure/total.impact.png', p, width = 27, height = 12, units = "cm")
+
 
 (cum.annual[country == "USA" & lifestyle.type == "Omnivore" & Year == 2026,"GHG.cum"] -
   cum.annual[country == "USA" & lifestyle.type == "2d meat-free" & Year == 2026,"GHG.cum"]) / 1000
@@ -691,6 +789,7 @@ delta.water / (3.7*365)
 
 means <- cum.annual[,.(avg.ghg = mean(GHG.cum),avg.water = mean(water.cum)), by = .(lifestyle.type)]
 
+# per year GHG savings
 (means[lifestyle.type == "5d meat-free",]$avg.ghg - 
   means[lifestyle.type == "Lacto-Ovo\nVegetarian",]$avg.ghg)/15
 (means[lifestyle.type == "2d meat-free",]$avg.ghg - 
@@ -700,3 +799,26 @@ means <- cum.annual[,.(avg.ghg = mean(GHG.cum),avg.water = mean(water.cum)), by 
     means[lifestyle.type == "2d meat-free",]$avg.ghg)/15
 (means[lifestyle.type == "Omnivore",]$avg.ghg-
     means[lifestyle.type == "5d meat-free",]$avg.ghg)/15
+
+# 15 year savings
+(means[lifestyle.type == "Omnivore",]$avg.ghg -
+    means[lifestyle.type == "2d meat-free",]$avg.ghg)
+(means[lifestyle.type == "Omnivore",]$avg.ghg-
+    means[lifestyle.type == "5d meat-free",]$avg.ghg)
+
+# per year water savings
+(means[lifestyle.type == "5d meat-free",]$avg.water - 
+    means[lifestyle.type == "Lacto-Ovo\nVegetarian",]$avg.water)/15
+(means[lifestyle.type == "2d meat-free",]$avg.water - 
+    means[lifestyle.type == "Lacto-Ovo\nVegetarian",]$avg.water)/15
+
+(means[lifestyle.type == "Omnivore",]$avg.water -
+    means[lifestyle.type == "2d meat-free",]$avg.water)/15
+(means[lifestyle.type == "Omnivore",]$avg.water-
+    means[lifestyle.type == "5d meat-free",]$avg.water)/15
+
+# 15 year savings
+(means[lifestyle.type == "Omnivore",]$avg.water -
+  means[lifestyle.type == "2d meat-free",]$avg.water)
+(means[lifestyle.type == "Omnivore",]$avg.water-
+    means[lifestyle.type == "5d meat-free",]$avg.water)

@@ -12,7 +12,7 @@ Countries included were: Austria, Canada, Japan and U.S. for all the countries w
 
 - **GHG Savings:** ~76,000 kg CO2eq (equivalent to 76 round-trip passenger flights between Tokyo and New York).
 - **Water Savings:** ~87 million liters of scarcity-weighted water (equivalent to 35 Olympic-sized swimming pools).
-- **Flexitarian Efficiency:** The model demonstrates that a 5-day meat-free diet captures nearly 90 percent of the environmental benefits of a full vegetarian diet.
+- **Flexitarian Efficiency:** The model demonstrates that a 5-day meat-free diet captures nearly 80% of the environmental benefits of a full vegetarian diet.
 
 ## Data Sources
 
